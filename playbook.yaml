@@ -1,0 +1,57 @@
+---
+- name: 01. Configure All Nodes (Common Prerequisites)
+  hosts: all
+  become: true
+  roles:
+    - 01-common
+  tags: ['common']
+
+- name: 02. Configure Firewall on All Nodes
+  hosts: all
+  become: true
+  roles:
+    - 02-firewall
+  tags: ['firewall']
+
+- name: 03. Setup Load Balancer (HAProxy)
+  hosts: loadbalancer
+  become: true
+  roles:
+    - 03-loadbalancer
+  tags: ['loadbalancer']
+
+- name: 04. Install Containerd on Cluster Nodes
+  hosts: kube_cluster
+  serial: 1
+  become: true
+  roles:
+    - 04-containerd
+  tags: ['containerd']
+
+- name: 05. Install Kubernetes Packages (kubeadm, kubelet)
+  hosts: kube_cluster
+  become: true
+  roles:
+    - 05-kube-prereqs
+  tags: ['kube-prereqs']
+
+- name: 06. Initialize & Join Master Nodes
+  hosts: masters
+  become: true
+  roles:
+    - 06-kube-master
+  tags: ['kube-master']
+
+- name: 07. Install Cilium CNI
+  hosts: master1
+  become: true
+  roles:
+    - 07-cilium
+  tags: ['cilium']
+
+- name: 08. Join Worker Nodes
+  hosts: workers
+  become: true
+  roles:
+    - 08-kube-worker
+  tags: ['kube-worker']

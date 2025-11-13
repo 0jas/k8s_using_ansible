@@ -1,0 +1,23 @@
+global
+    log /dev/log local0
+    daemon
+
+defaults
+    log global
+    mode tcp
+    option tcplog
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+
+frontend kubernetes-api
+    bind {{ cluster_endpoint_ip }}:{{ cluster_endpoint_port }}
+    mode tcp
+    default_backend kubernetes-masters
+
+backend kubernetes-masters
+    mode tcp
+    balance roundrobin
+    {% for host in groups['masters'] %}
+    server {{ hostvars[host]['inventory_hostname'] }} {{ hostvars[host]['ansible_host'] }}:6443 check
+    {% endfor %}

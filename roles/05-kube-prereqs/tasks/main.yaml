@@ -1,0 +1,29 @@
+---
+- name: Add Kubernetes YUM repository
+  ansible.builtin.yum_repository:
+    name: kubernetes
+    description: Kubernetes
+    baseurl: https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0] }}.{{ k8s_version.split('.')[1] }}/rpm/
+    gpgkey: https://pkgs.k8s.io/core:/stable:/v{{ k8s_version.split('.')[0] }}.{{ k8s_version.split('.')[1] }}/rpm/repodata/repomd.xml.key
+    gpgcheck: yes
+    repo_gpgcheck: no # Official repo signing key is in gpgkey
+    exclude: "kubelet kubeadm kubectl cri-tools kubernetes-cni"
+  tags: ['kube-prereqs', 'kubernetes-repo']
+
+- name: Install kubelet, kubeadm, and kubectl
+  ansible.builtin.dnf:
+    name:
+      - "kubelet-{{ k8s_version }}"
+      - "kubeadm-{{ k8s_version }}"
+      - "kubectl-{{ k8s_version }}"
+      - "socat" 
+      - "iproute-tc"
+    state: present
+    disable_excludes: kubernetes
+  tags: ['kube-prereqs', 'kubernetes-install']
+
+- name: Enable kubelet service
+  ansible.builtin.service:
+    name: kubelet
+    enabled: yes
+  tags: ['kube-prereqs', 'kubelet-enable']

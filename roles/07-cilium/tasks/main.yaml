@@ -1,0 +1,63 @@
+---
+- name: Install Cilium CLI
+  ansible.builtin.get_url:
+    url: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-amd64.tar.gz"
+    dest: /tmp/cilium-linux-amd64.tar.gz
+    mode: '0644'
+  tags: ['cilium', 'cilium-cli']
+
+- name: Install tar if not present
+  ansible.builtin.package:
+    name: tar
+    state: present
+  tags: ['cilium', 'cilium-cli']
+
+- name: Unarchive Cilium CLI
+  ansible.builtin.unarchive:
+    src: /tmp/cilium-linux-amd64.tar.gz
+    dest: /usr/local/bin
+    remote_src: yes
+    extra_opts:
+      - cilium
+    mode: '0755'
+    owner: root
+    group: root
+  tags: ['cilium', 'cilium-cli']
+
+- name: Set KUBECONFIG environment for shell commands
+  ansible.builtin.set_fact:
+    kubeconfig_env:
+      KUBECONFIG: "{{ (ansible_user == 'root') | ternary('/etc/kubernetes/admin.conf', '/home/' + ansible_user + '/.kube/config') }}"
+  tags: ['cilium', 'cilium-env']
+
+- name: Check if Cilium is already installed
+  ansible.builtin.shell: >
+    kubectl get pods -n kube-system -l k8s-app=cilium -o name
+  environment: "{{ kubeconfig_env }}"
+  register: cilium_check
+  changed_when: false
+  ignore_errors: true
+  tags: ['cilium', 'cilium-check']
+
+- name: Install Cilium CNI
+  ansible.builtin.command: >
+    cilium install
+    --version {{ cilium_helm_version }}
+  environment: "{{ kubeconfig_env }}"
+  changed_when: true
+  register: cilium_install
+  retries: 3
+  delay: 10
+  until: cilium_install.rc == 0
+  when: cilium_check.stdout == ""  # <-- This condition prevents re-installation
+  tags: ['cilium', 'cilium-install']
+
+- name: Wait for Cilium pods to be ready
+  ansible.builtin.command: cilium status --wait
+  environment: "{{ kubeconfig_env }}"
+  changed_when: false
+  retries: 10
+  delay: 30
+  until: cilium_status.rc == 0
+  register: cilium_status
+  tags: ['cilium', 'cilium-status']

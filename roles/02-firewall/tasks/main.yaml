@@ -1,0 +1,65 @@
+---
+- name: Ensure firewalld is running
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: yes
+  tags: ['firewall', 'firewalld']
+
+- name: Open ports for Master Nodes
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - "6443/tcp"        # K8s API
+    - "2379-2380/tcp"   # etcd
+    - "10250/tcp"       # Kubelet API
+    - "10257/tcp"       # kube-controller-manager
+    - "10259/tcp"       # kube-scheduler
+  when: inventory_hostname in groups['masters']
+  tags: ['firewall', 'firewalld-masters']
+
+- name: Open ports for Worker Nodes
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - "10250/tcp"       # Kubelet API
+    - "30000-32767/tcp" # NodePort Services
+  when: inventory_hostname in groups['workers']
+  tags: ['firewall', 'firewalld-workers']
+
+- name: Open ports for Load Balancer
+  ansible.posix.firewalld:
+    port: "{{ cluster_endpoint_port }}/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  when: inventory_hostname in groups['loadbalancer']
+  tags: ['firewall', 'firewalld-loadbalancer']
+
+- name: Open ports for Cilium (All Cluster Nodes)
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - "4240/tcp"  # Cilium Health
+    - "51871/udp" # WireGuard
+    - "8472/udp"  # VXLAN
+  when: inventory_hostname in groups['kube_cluster']
+  tags: ['firewall', 'firewalld-cilium']
+
+- name: Allow IP-in-IP protocol (Cilium)
+  ansible.posix.firewalld:
+    rich_rule: 'rule protocol value="ipip" accept'
+    permanent: yes
+    state: enabled
+    immediate: yes
+  when: inventory_hostname in groups['kube_cluster']
+  tags: ['firewall', 'firewalld-cilium']

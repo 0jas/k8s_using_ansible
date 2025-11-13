@@ -1,0 +1,14 @@
+# roles/06-kube-master/templates/kubeadm-config.yaml.j2
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+nodeRegistration:
+  kubeletExtraArgs:
+    cgroup-driver: "systemd"
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: "v{{ k8s_version }}"
+controlPlaneEndpoint: "{{ cluster_endpoint_ip }}:{{ cluster_endpoint_port }}"
+networking:
+  serviceSubnet: "{{ service_network_cidr }}"
+  podSubnet: "{{ pod_network_cidr }}"

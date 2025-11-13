@@ -1,0 +1,23 @@
+---
+- name: Install HAProxy
+  ansible.builtin.dnf:
+    name: haproxy
+    state: present
+  tags: ['loadbalancer', 'haproxy']
+
+- name: Allow HAProxy to bind to non-local addresses
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_nonlocal_bind
+    value: '1'
+    state: present
+    sysctl_file: /etc/sysctl.d/98-haproxy.conf
+    reload: yes
+  tags: ['loadbalancer', 'haproxy']
+
+- name: Configure HAProxy for K8s API
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    mode: '0644'
+  notify: Restart haproxy
+  tags: ['loadbalancer', 'haproxy']

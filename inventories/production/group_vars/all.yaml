@@ -1,0 +1,16 @@
+---
+# System configuration
+system_timezone: "Australia/Melbourne"
+
+# Kubernetes configuration
+k8s_version: "1.29.0"
+pod_network_cidr: "10.244.0.0/16"
+service_network_cidr: "10.96.0.0/12"
+
+# HA Proxy Endpoint
+cluster_endpoint_ip: "192.168.157.50"
+cluster_endpoint_port: 6443
+
+# Cilium configuration
+cilium_cli_version: "v0.18.8"
+cilium_helm_version: "1.18.3"

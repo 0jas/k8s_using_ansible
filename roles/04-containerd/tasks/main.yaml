@@ -1,0 +1,45 @@
+---
+- name: Add Docker CE repo (for containerd.io)
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: '0644'
+  tags: ['containerd', 'containerd-repo']
+
+- name: Install containerd.io
+  ansible.builtin.dnf:
+    name: containerd.io
+    state: present
+  tags: ['containerd', 'containerd-install']
+
+- name: Ensure config directory exists
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: '0755'
+  tags: ['containerd', 'containerd-config']
+
+- name: Restart containerd service
+  ansible.builtin.service:
+    name: containerd
+    state: restarted
+    enabled: yes
+  tags: ['containerd', 'containerd-config']
+
+- name: Generate default containerd config
+  ansible.builtin.shell: containerd config default >  /etc/containerd/config.toml
+  tags: ['containerd', 'containerd-config']
+
+- name: Set systemd cgroup driver in containerd config
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: 'SystemdCgroup = false'
+    replace: 'SystemdCgroup = true'
+  tags: ['containerd', 'containerd-config']
+
+- name: Restart containerd service
+  ansible.builtin.service:
+    name: containerd
+    state: restarted
+    enabled: yes
+  tags: ['containerd', 'containerd-config']
